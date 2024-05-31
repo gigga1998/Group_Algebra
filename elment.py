@@ -93,40 +93,44 @@ class Group():
         self.neutral = neutral
 
     def __init__(self, statement: str):
-        gr = statement[0]
-        n = int(statement[1:])
-        if gr == "S":
-            elems = SymmetryGroupElements(n)
-            multable = []
-            for l_elem in elems:
-                row = []
-                for r_elem in elems:
-                    mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
-                    row.append(str(mult_res))
-                multable.append(row)
-            elems = [str(elem) for elem in elems]
-            self.multable = pd.DataFrame(
-                data=multable,
-                columns=elems,
-                index=elems,
-            )
-            self.neutral = elems[0]
-        
-        if gr == "C":
-            elems = CyclicGroupElements(n)
-            multable = []
-            for l_elem in elems:
-                row = []
-                for r_elem in elems:
-                    row.append(str((l_elem + r_elem) % n))
-                multable.append(row)
-            elems = [str(elem) for elem in elems]
-            self.multable = pd.DataFrame(
-                data=multable,
-                columns=elems,
-                index=elems,
-            )
-            self.neutral = elems[0]
+        if statement == "Empty":
+            self.multable = None
+            self.neutral = None
+        else:
+            gr = statement[0]
+            n = int(statement[1:])
+            if gr == "S":
+                elems = SymmetryGroupElements(n)
+                multable = []
+                for l_elem in elems:
+                    row = []
+                    for r_elem in elems:
+                        mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
+                        row.append(str(mult_res))
+                    multable.append(row)
+                elems = [str(elem) for elem in elems]
+                self.multable = pd.DataFrame(
+                    data=multable,
+                    columns=elems,
+                    index=elems,
+                )
+                self.neutral = elems[0]
+            
+            if gr == "C":
+                elems = CyclicGroupElements(n)
+                multable = []
+                for l_elem in elems:
+                    row = []
+                    for r_elem in elems:
+                        row.append(str((l_elem + r_elem) % n))
+                    multable.append(row)
+                elems = [str(elem) for elem in elems]
+                self.multable = pd.DataFrame(
+                    data=multable,
+                    columns=elems,
+                    index=elems,
+                )
+                self.neutral = elems[0]
 
 
     def multiply_simbols(self, sym1, sym2):
@@ -156,7 +160,8 @@ class Group():
         """
         Return inverse elemen symbol for Elem(self, sym).
         """
-        return self.multable[sym][self.multable[sym] == self.neutral].index[0]
+        col = self.multable[sym]
+        return col[col == self.neutral].index[0]
     
     def get_element(self, sym):
         return Element(sym, self)
@@ -167,11 +172,37 @@ class Group():
             )
     
     def generate_subgroup(self, symbols):
-        copy_elements = elements
-        for elem in copy_elements:
-            elements = elements.union(set(
-                self.multiply_simbols()
-            ))
+        subGroup = set(sym for sym in symbols)
+        subGroup |= set(self.inv_symbol(sym) for sym in symbols)
+        alphabet = frozenset(subGroup)
+        subGroup.add(self.neutral)
+
+        while True:
+            multiSet = set(
+                self.multiply_simbols(lsym, rsym) for lsym in subGroup
+                for rsym in alphabet
+            )
+            
+            if multiSet == subGroup:
+                break
+            subGroup = multiSet
+        
+        subGroup_elemes = tuple(subGroup)
+        multable = [
+            [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
+            for lsym in subGroup_elemes
+        ]
+        subGroup = Group("Empty")
+        subGroup.multable = pd.DataFrame(
+            data=multable,
+            columns=subGroup_elemes,
+            index=subGroup_elemes
+        )
+        subGroup.neutral = self.neutral
+        return subGroup
+
+
+            
         
     def __mul__(self, other):
         tab1 = self.multable
@@ -201,6 +232,23 @@ class Group():
 
         return Group(tab)
 
+
+class SubGroup(super=Group):
+    def __init__(self, multable: pd.DataFrame, neutral: str, group: Group):
+        """
+        Sub group inicializer.
+
+        We identify H < G with the foloowing collection:
+            H := (id, multable, Group)
+        """
+        self.multable = multable
+        self.neutral = neutral
+        self.group = group
+
+    def Factor(self):
+        pass
+
+
 def SymmetryGroupElements(n: int) -> list[str]:
     """
     Return all perms of {1, 2, ..., n} set.
@@ -222,6 +270,7 @@ def CyclicGroupElements(n: int) -> list[str]:
     return [i for i in range(n)]
 
 if __name__ == "__main__":
-    grp = Group("S3")
-    elme = grp.get_element('(2, 3, 1)')
-    print(elme / elme)
+    x = Group("C24")
+    sub = x.generate_subgroup(('6', '8'))
+    print(sub.multable)
+    
