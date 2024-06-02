@@ -1,3 +1,6 @@
+"""
+Utilitarity functions for the group theory task
+"""
 import itertools
 
 class Pair:
@@ -28,14 +31,14 @@ class Element:
     Group: Group
         Group to which the element belongs.
     """
-    def __init__(self, symbol, Group):
+    def __init__(self, symbol, group):
         self.sym = symbol
-        self.Group = Group
+        self.group = group
 
     def __mul__(self, other):
-        if self.Group == other.Group:
-            new_sym = self.Group.multiply_simbols(self.sym, other.sym)
-            return Element(new_sym, self.Group)
+        if self.group == other.Group:
+            new_sym = self.group.multiply_simbols(self.sym, other.sym)
+            return Element(new_sym, self.group)
         else:
             print("Different this elements has different groups.")
 
@@ -43,38 +46,38 @@ class Element:
         return self.sym
 
     def __pow__(self, power):
-        Group = self.Group
-        sym = Group.neutral
+        group = self.group
+        sym = group.neutral
 
         if power < 0:
             inv_sym = self.inv().sym
             for _ in range(-power):
-                sym = Group.multiply_simbols(sym, inv_sym)
-            return Element(sym, Group)
+                sym = group.multiply_simbols(sym, inv_sym)
+            return Element(sym, group)
 
         for _ in range(power):
-            sym = Group.multiply_simbols(sym, self.sym)
-        return Element(sym, Group)
+            sym = group.multiply_simbols(sym, self.sym)
+        return Element(sym, group)
 
     def __truediv__(self, other):
         return self * (other**-1)
 
     def inv(self):
-        Group = self.Group
-        Group_table = Group.multable
+        group = self.group
+        group_table = group.multable
         sym = self.sym
-        neutral_sym = Group.neutral
+        neutral_sym = group.neutral
 
-        col = Group_table[sym]
+        col = group_table[sym]
 
         inv_sym = col[col == neutral_sym].index[0]
 
-        return Element(inv_sym, Group)
+        return Element(inv_sym, group)
 
     def __len__(self):
         length = 1
         power = self
-        neutral_sym = self.Group.neutral
+        neutral_sym = self.group.neutral
 
         while power.sym != neutral_sym:
             length += 1

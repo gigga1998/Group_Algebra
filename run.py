@@ -1,3 +1,6 @@
+"""
+run file just for quick testing code
+"""
 from src.group import Group
 import click
 
@@ -12,4 +15,4 @@ def main(first, second):
     print(z.multable)
 
 if __name__ == "__main__":
-    main()
+    main() # pylint: disable=no-value-for-parameter

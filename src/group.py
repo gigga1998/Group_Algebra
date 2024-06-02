@@ -1,3 +1,6 @@
+"""
+Inmplementation of groups 
+"""
 import pandas as pd
 from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
@@ -100,33 +103,33 @@ class Group:
         return set(Element(sym, self) for sym in self.multable.columns)
 
     def generate_subgroup(self, symbols):
-        subGroup = set(sym for sym in symbols)
-        subGroup |= set(self.inv_symbol(sym) for sym in symbols)
-        alphabet = frozenset(subGroup)
-        subGroup.add(self.neutral)
+        sub_group = set(sym for sym in symbols)
+        sub_group |= set(self.inv_symbol(sym) for sym in symbols)
+        alphabet = frozenset(sub_group)
+        sub_group.add(self.neutral)
 
         while True:
-            multiSet = set(
+            multi_set = set(
                 self.multiply_simbols(lsym, rsym)
-                for lsym in subGroup
+                for lsym in sub_group
                 for rsym in alphabet
             )
 
-            if multiSet == subGroup:
+            if multi_set == sub_group:
                 break
-            subGroup = multiSet
+            sub_group = multi_set
 
-        subGroup_elemes = tuple(subGroup)
+        sub_group_elemes = tuple(sub_group)
         multable = [
-            [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
-            for lsym in subGroup_elemes
+            [self.multiply_simbols(lsym, rsym) for rsym in sub_group_elemes]
+            for lsym in sub_group_elemes
         ]
-        subGroup = Group("Empty")
-        subGroup.multable = pd.DataFrame(
-            data=multable, columns=subGroup_elemes, index=subGroup_elemes
+        sub_group = Group("Empty")
+        sub_group.multable = pd.DataFrame(
+            data=multable, columns=sub_group_elemes, index=sub_group_elemes
         )
-        subGroup.neutral = self.neutral
-        return subGroup
+        sub_group.neutral = self.neutral
+        return sub_group
 
     def __mul__(self, other):
         tab1 = self.multable

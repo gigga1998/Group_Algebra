@@ -1,3 +1,6 @@
+"""
+Implementation of subgroups
+"""
 import pandas as pd
 from src.group import Group
 
