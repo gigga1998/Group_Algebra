@@ -8,7 +8,7 @@ def main(first, second):
     x = Group(first)
     y = Group(second)
     # sub = x.generate_subgroup(("6", "8"))
-    z= x*y
+    z = x * y
     print(z.multable)
 
 if __name__ == "__main__":

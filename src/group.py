@@ -3,7 +3,8 @@ from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
 
 class Group:
-    def __init__(self, multable, neutral):
+    @classmethod
+    def new_group(cls, multable, neutral):
         """
         multable -- 2d multiplication table.
         example: [
@@ -12,12 +13,15 @@ class Group:
                  ]
         """
         symbols = multable[0]
-        self.multable = pd.DataFrame(
+        group = Group("Empty")
+
+        group.multable = pd.DataFrame(
             data=multable,
             columns=symbols,
             index=symbols,
         )
-        self.neutral = neutral
+        group.neutral = neutral
+        return group
 
     def __init__(self, statement: str):
         if statement == "Empty":
@@ -142,4 +146,7 @@ class Group:
                 row.append(f"({first_sym}, {second_sym})")
             tab.append(row)
 
-        return Group(tab)
+        neutral = f"({self.neutral}, {other.neutral})"
+        return Group.new_group(tab, neutral)
+
+
