@@ -130,12 +130,12 @@ class Group:
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
             for lsym in subGroup_elemes
         ]
-        subGroup = Group()
-        subGroup.multable = pd.DataFrame(
+
+        multable = pd.DataFrame(
             data=multable, columns=subGroup_elemes, index=subGroup_elemes
         )
-        subGroup.neutral = self.neutral
-        return subGroup
+        neutral = self.neutral
+        return SubGroup(multable, neutral, self)
 
     def __mul__(self, other):
         tab1 = self.multable
