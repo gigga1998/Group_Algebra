@@ -107,25 +107,12 @@ class Group:
 
     def get_elements(self):
         return set(Element(sym, self) for sym in self.multable.columns)
+    
+    def get_symbols(self):
+        return set(self.multable.columns)
 
     def generate_subgroup(self, symbols):
-        subGroup = set(sym for sym in symbols)
-        subGroup |= set(self.inv_symbol(sym) for sym in symbols)
-        alphabet = frozenset(subGroup)
-        subGroup.add(self.neutral)
-
-        while True:
-            multiSet = set(
-                self.multiply_simbols(lsym, rsym)
-                for lsym in subGroup
-                for rsym in alphabet
-            )
-
-            if multiSet == subGroup:
-                break
-            subGroup = multiSet
-
-        subGroup_elemes = tuple(subGroup)
+        subGroup_elemes = tuple(sym for sym in operation_closure(self, symbols))
         multable = [
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
             for lsym in subGroup_elemes
@@ -164,3 +151,40 @@ class SubGroup(Group):
         self.multable = multable
         self.neutral = neutral
         self.group = group
+
+
+def conj_closure(group: Group, collection_of_elemt_symbols):
+    """
+    Return subset X of G sush as for every g in G gXg**-1 = X.
+    """
+    mult = group.multiply_simbols
+    inv = group.inv_symbol
+    return set(
+        mult(mult(g, x), inv(g)) for x in collection_of_elemt_symbols
+        for g in group.get_symbols()
+    )
+
+def operation_closure(group: Group, collection_of_elemt_symbols):
+    mult = group.multiply_simbols
+    inv = group.inv_symbol
+    closed_under_operations = set(
+        x for x in collection_of_elemt_symbols
+    )
+    closed_under_operations = closed_under_operations.union(
+        inv(x) for x in closed_under_operations
+        )
+    closed_under_operations.add(group.neutral)
+    alphabet = closed_under_operations
+
+    while True:
+        multiSet = set(
+            mult(lsym, rsym)
+            for lsym in closed_under_operations
+            for rsym in alphabet
+        )
+
+        if multiSet == closed_under_operations:
+            break
+        closed_under_operations = multiSet
+    
+    return closed_under_operations
