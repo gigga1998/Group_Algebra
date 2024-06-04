@@ -3,6 +3,15 @@ from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
 
 class Group:
+    multable: pd.DataFrame
+    neutral: str
+
+    def __init__(self) -> None:
+        pass
+
+    def __str__(self) -> str:
+        return self.multable.to_string()
+
     @classmethod
     def new_group(cls, multable, neutral):
         """
@@ -13,7 +22,7 @@ class Group:
                  ]
         """
         symbols = multable[0]
-        group = Group("Empty")
+        group = Group()
 
         group.multable = pd.DataFrame(
             data=multable,
@@ -23,45 +32,45 @@ class Group:
         group.neutral = neutral
         return group
 
-    def __init__(self, statement: str):
-        if statement == "Empty":
-            self.multable = None
-            self.neutral = None
-        else:
-            gr = statement[0]
-            n = int(statement[1:])
-            if gr == "S":
-                elems = SymmetryGroupElements(n)
-                multable = []
-                for l_elem in elems:
-                    row = []
-                    for r_elem in elems:
-                        mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
-                        row.append(str(mult_res))
-                    multable.append(row)
-                elems = [str(elem) for elem in elems]
-                self.multable = pd.DataFrame(
-                    data=multable,
-                    columns=elems,
-                    index=elems,
-                )
-                self.neutral = elems[0]
+    @classmethod
+    def from_expression(cls, expr: str):
+        group = Group()
+        gr = expr[0]
+        n = int(expr[1:])
+        if gr == "S":
+            elems = SymmetryGroupElements(n)
+            multable = []
+            for l_elem in elems:
+                row = []
+                for r_elem in elems:
+                    mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
+                    row.append(str(mult_res))
+                multable.append(row)
+            elems = [str(elem) for elem in elems]
+            group.multable = pd.DataFrame(
+                data=multable,
+                columns=elems,
+                index=elems,
+            )
+            group.neutral = elems[0]
+            return group
 
-            if gr == "C":
-                elems = CyclicGroupElements(n)
-                multable = []
-                for l_elem in elems:
-                    row = []
-                    for r_elem in elems:
-                        row.append(str((l_elem + r_elem) % n))
-                    multable.append(row)
-                elems = [str(elem) for elem in elems]
-                self.multable = pd.DataFrame(
-                    data=multable,
-                    columns=elems,
-                    index=elems,
-                )
-                self.neutral = elems[0]
+        if gr == "C":
+            elems = CyclicGroupElements(n)
+            multable = []
+            for l_elem in elems:
+                row = []
+                for r_elem in elems:
+                    row.append(str((l_elem + r_elem) % n))
+                multable.append(row)
+            elems = [str(elem) for elem in elems]
+            group.multable = pd.DataFrame(
+                data=multable,
+                columns=elems,
+                index=elems,
+            )
+            group.neutral = elems[0]
+            return group
 
     def multiply_simbols(self, sym1, sym2):
         """
@@ -121,7 +130,7 @@ class Group:
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
             for lsym in subGroup_elemes
         ]
-        subGroup = Group("Empty")
+        subGroup = Group()
         subGroup.multable = pd.DataFrame(
             data=multable, columns=subGroup_elemes, index=subGroup_elemes
         )
@@ -150,3 +159,8 @@ class Group:
         return Group.new_group(tab, neutral)
 
 
+class SubGroup(Group):
+    def __init__(self, multable: pd.DataFrame, neutral: str, group: Group):
+        self.multable = multable
+        self.neutral = neutral
+        self.group = group
