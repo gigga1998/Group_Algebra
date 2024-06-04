@@ -111,13 +111,41 @@ class Group:
     def get_symbols(self):
         return set(self.multable.columns)
 
-    def generate_subgroup(self, symbols):
+    def subgroup(self, symbols):
         subGroup_elemes = tuple(sym for sym in operation_closure(self, symbols))
         multable = [
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
             for lsym in subGroup_elemes
         ]
 
+        multable = pd.DataFrame(
+            data=multable, columns=subGroup_elemes, index=subGroup_elemes
+        )
+        neutral = self.neutral
+        return SubGroup(multable, neutral, self)
+
+    def normal_subgroup(self, symbols):
+        subGroup_elemes = operation_closure(self, symbols)
+
+        while True:
+            subgroup_conj_closure = conj_closure(self, subGroup_elemes)
+
+            if subgroup_conj_closure == subGroup_elemes:
+                break
+
+            subGroup_elemes = subgroup_conj_closure
+            subGroup_op_closure = operation_closure(self, subGroup_elemes)
+
+            if subGroup_elemes == subGroup_op_closure:
+                break
+
+            subGroup_elemes = subGroup_op_closure
+
+        subGroup_elemes = tuple(sym for sym in subGroup_elemes)
+        multable = [
+                    [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
+                    for lsym in subGroup_elemes
+                ]
         multable = pd.DataFrame(
             data=multable, columns=subGroup_elemes, index=subGroup_elemes
         )
