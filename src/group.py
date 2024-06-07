@@ -7,15 +7,18 @@ class Group:
     neutral: str
 
     def __init__(self) -> None:
+        """Init void group."""
         pass
 
     def __str__(self) -> str:
+        """String cast."""
         return self.multable.to_string()
 
     @classmethod
     def new_group(cls, multable, neutral):
         """
         multable -- 2d multiplication table.
+        neutral -- symbol of identity element.
         example: [
                   ['a', 'b'],
                   ['b', 'a']
@@ -96,6 +99,7 @@ class Group:
         return self.multable[sym2][sym1]
 
     def inv_symbol(self, sym):
+        """Get inv-symbol of current symbol."""
         """
         Return inverse elemen symbol for Elem(self, sym).
         """
@@ -103,15 +107,19 @@ class Group:
         return col[col == self.neutral].index[0]
 
     def get_element(self, sym):
+        """Get element with current symbol"""
         return Element(sym, self)
 
     def get_elements(self):
+        """Get group elements."""
         return set(Element(sym, self) for sym in self.multable.columns)
     
     def get_symbols(self):
+        """Get all symbols of group elements."""
         return set(self.multable.columns)
 
     def subgroup(self, symbols):
+        """Generate sub-group."""
         subGroup_elemes = tuple(sym for sym in operation_closure(self, symbols))
         multable = [
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
@@ -125,6 +133,7 @@ class Group:
         return SubGroup(multable, neutral, self)
 
     def normal_subgroup(self, symbols):
+        """Generate normal-subgroup."""
         subGroup_elemes = operation_closure(self, symbols)
 
         while True:
@@ -151,8 +160,15 @@ class Group:
         )
         neutral = self.neutral
         return SubGroup(multable, neutral, self)
+    
+    def __truediv__(self, subgroup):
+        """Calculate factor-group."""
+        assert self == subgroup.group
+
+
 
     def __mul__(self, other):
+        """Return direct product of groups."""
         tab1 = self.multable
         tab2 = other.multable
 
@@ -182,9 +198,7 @@ class SubGroup(Group):
 
 
 def conj_closure(group: Group, collection_of_elemt_symbols):
-    """
-    Return subset X of G sush as for every g in G gXg**-1 = X.
-    """
+    """Return subset X of G sush as for every g in G gXg**-1 = X."""
     mult = group.multiply_simbols
     inv = group.inv_symbol
     return set(
