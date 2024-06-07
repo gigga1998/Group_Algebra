@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
@@ -13,6 +14,15 @@ class Group:
     def __str__(self) -> str:
         """String cast."""
         return self.multable.to_string()
+
+    @classmethod
+    def from_pandas(cls, df, neutral):
+        """Create group from df multable."""
+        group = Group()
+        group.multable = df
+        group.neutral = neutral
+
+        return group
 
     @classmethod
     def new_group(cls, multable, neutral):
@@ -165,7 +175,36 @@ class Group:
         """Calculate factor-group."""
         assert self == subgroup.group
 
+        group_symbols = self.get_symbols()
+        subgroup_symbols = subgroup.get_symbols()
 
+        group_symbols -= subgroup_symbols
+        factor_group_symbols = [self.neutral]
+
+        mult = self.multiply_simbols
+
+        while group_symbols:
+            random_symbol = random.choice(list(group_symbols))
+            factor_group_symbols.append(random_symbol)
+            group_symbols -= set(
+                mult(random_symbol, symbol) for symbol in subgroup_symbols
+                )
+        
+        def factor_mult(lsym, rsym):
+            sym = mult(lsym, rsym)
+            return f"[{find_equivalent(mult, subgroup_symbols, sym, factor_group_symbols)}]"
+
+        multable = [
+            [factor_mult(lsym, rsym) for rsym in factor_group_symbols]
+            for lsym in factor_group_symbols
+        ]
+        factor_group_symbols = [f"[{sym}]" for sym in factor_group_symbols]
+        multable = pd.DataFrame(
+            multable, columns=factor_group_symbols , index=factor_group_symbols
+        )
+        neutral = f"[{self.neutral}]"
+
+        return Group.from_pandas(multable, neutral)
 
     def __mul__(self, other):
         """Return direct product of groups."""
@@ -230,3 +269,12 @@ def operation_closure(group: Group, collection_of_elemt_symbols):
         closed_under_operations = multiSet
     
     return closed_under_operations
+
+
+def find_equivalent(multiplication, N, elem, elements):
+    """Find euivalent symbol for elem in elements modulo N."""
+    for rsym in N:
+        for lsym in elements:
+            if multiplication(lsym, rsym) == elem:
+                return lsym
+    return None
