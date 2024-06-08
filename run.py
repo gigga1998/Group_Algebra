@@ -12,4 +12,5 @@ def main(first, second):
     print(z.multable)
 
 if __name__ == "__main__":
+    print("Hello, Group_Algebra!")
     main()
