@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "group algebra"
+version = "0.1.0"
+description = "Group Algebra - open-source lib for group algebra calculations"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numba = "^0.59.1"
+click = "^8.1.7"
+pandas = "^2.2.2"
+numpy = "^1.26.4"
+pylint = "^3.2.2"
+black = "^24.4.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
