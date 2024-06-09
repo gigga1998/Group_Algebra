@@ -171,6 +171,29 @@ class Group:
         neutral = self.neutral
         return SubGroup(multable, neutral, self)
     
+    def commutator(self, lsym, rsym):
+        """Return commutator [lsym, rsym]."""
+        inv_lsym = self.inv_symbol(lsym)
+        inv_rsym = self.inv_symbol(rsym)
+        mul = self.multiply_simbols
+
+        return mul(mul(mul(inv_lsym, inv_rsym), lsym), rsym)
+    
+    def commutator_subgroup(self):
+        """Return commutator sub-group."""
+        group_syms = self.get_symbols()
+        generator_set = set(
+            self.commutator(lsym, rsym) for lsym in group_syms
+            for rsym in group_syms
+        )
+        commutator_sub = self.normal_subgroup(generator_set)
+        return commutator_sub
+    
+    def abelinization(self):
+        """Return the abelinization of current Group."""
+        commutator = self.commutator_subgroup()
+        return self / commutator
+    
     def __truediv__(self, subgroup):
         """Calculate factor-group."""
         assert self == subgroup.group
