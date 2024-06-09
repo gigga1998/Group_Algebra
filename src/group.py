@@ -6,6 +6,15 @@ from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
 
 class Group:
+    multable: pd.DataFrame
+    neutral: str
+
+    def __init__(self) -> None:
+        pass
+
+    def __str__(self) -> str:
+        return self.multable.to_string()
+
     @classmethod
     def new_group(cls, multable, neutral):
         """
@@ -16,7 +25,7 @@ class Group:
                  ]
         """
         symbols = multable[0]
-        group = Group("Empty")
+        group = Group()
 
         group.multable = pd.DataFrame(
             data=multable,
@@ -26,45 +35,45 @@ class Group:
         group.neutral = neutral
         return group
 
-    def __init__(self, statement: str):
-        if statement == "Empty":
-            self.multable = None
-            self.neutral = None
-        else:
-            gr = statement[0]
-            n = int(statement[1:])
-            if gr == "S":
-                elems = SymmetryGroupElements(n)
-                multable = []
-                for l_elem in elems:
-                    row = []
-                    for r_elem in elems:
-                        mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
-                        row.append(str(mult_res))
-                    multable.append(row)
-                elems = [str(elem) for elem in elems]
-                self.multable = pd.DataFrame(
-                    data=multable,
-                    columns=elems,
-                    index=elems,
-                )
-                self.neutral = elems[0]
+    @classmethod
+    def from_expression(cls, expr: str):
+        group = Group()
+        gr = expr[0]
+        n = int(expr[1:])
+        if gr == "S":
+            elems = SymmetryGroupElements(n)
+            multable = []
+            for l_elem in elems:
+                row = []
+                for r_elem in elems:
+                    mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
+                    row.append(str(mult_res))
+                multable.append(row)
+            elems = [str(elem) for elem in elems]
+            group.multable = pd.DataFrame(
+                data=multable,
+                columns=elems,
+                index=elems,
+            )
+            group.neutral = elems[0]
+            return group
 
-            if gr == "C":
-                elems = CyclicGroupElements(n)
-                multable = []
-                for l_elem in elems:
-                    row = []
-                    for r_elem in elems:
-                        row.append(str((l_elem + r_elem) % n))
-                    multable.append(row)
-                elems = [str(elem) for elem in elems]
-                self.multable = pd.DataFrame(
-                    data=multable,
-                    columns=elems,
-                    index=elems,
-                )
-                self.neutral = elems[0]
+        if gr == "C":
+            elems = CyclicGroupElements(n)
+            multable = []
+            for l_elem in elems:
+                row = []
+                for r_elem in elems:
+                    row.append(str((l_elem + r_elem) % n))
+                multable.append(row)
+            elems = [str(elem) for elem in elems]
+            group.multable = pd.DataFrame(
+                data=multable,
+                columns=elems,
+                index=elems,
+            )
+            group.neutral = elems[0]
+            return group
 
     def multiply_simbols(self, sym1, sym2):
         """
@@ -101,35 +110,50 @@ class Group:
 
     def get_elements(self):
         return set(Element(sym, self) for sym in self.multable.columns)
+    
+    def get_symbols(self):
+        return set(self.multable.columns)
 
-    def generate_subgroup(self, symbols):
-        sub_group = set(sym for sym in symbols)
-        sub_group |= set(self.inv_symbol(sym) for sym in symbols)
-        alphabet = frozenset(sub_group)
-        sub_group.add(self.neutral)
-
-        while True:
-            multi_set = set(
-                self.multiply_simbols(lsym, rsym)
-                for lsym in sub_group
-                for rsym in alphabet
-            )
-
-            if multi_set == sub_group:
-                break
-            sub_group = multi_set
-
-        sub_group_elemes = tuple(sub_group)
+    def subgroup(self, symbols):
+        sub_group_elemes = tuple(sym for sym in operation_closure(self, symbols))
         multable = [
             [self.multiply_simbols(lsym, rsym) for rsym in sub_group_elemes]
             for lsym in sub_group_elemes
         ]
-        sub_group = Group("Empty")
-        sub_group.multable = pd.DataFrame(
+
+        multable = pd.DataFrame(
             data=multable, columns=sub_group_elemes, index=sub_group_elemes
         )
-        sub_group.neutral = self.neutral
-        return sub_group
+        neutral = self.neutral
+        return SubGroup(multable, neutral, self)
+
+    def normal_subgroup(self, symbols):
+        subGroup_elemes = operation_closure(self, symbols)
+
+        while True:
+            subgroup_conj_closure = conj_closure(self, subGroup_elemes)
+
+            if subgroup_conj_closure == subGroup_elemes:
+                break
+
+            subGroup_elemes = subgroup_conj_closure
+            subGroup_op_closure = operation_closure(self, subGroup_elemes)
+
+            if subGroup_elemes == subGroup_op_closure:
+                break
+
+            subGroup_elemes = subGroup_op_closure
+
+        subGroup_elemes = tuple(sym for sym in subGroup_elemes)
+        multable = [
+                    [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
+                    for lsym in subGroup_elemes
+                ]
+        multable = pd.DataFrame(
+            data=multable, columns=subGroup_elemes, index=subGroup_elemes
+        )
+        neutral = self.neutral
+        return SubGroup(multable, neutral, self)
 
     def __mul__(self, other):
         tab1 = self.multable
@@ -153,3 +177,45 @@ class Group:
         return Group.new_group(tab, neutral)
 
 
+class SubGroup(Group):
+    def __init__(self, multable: pd.DataFrame, neutral: str, group: Group):
+        self.multable = multable
+        self.neutral = neutral
+        self.group = group
+
+
+def conj_closure(group: Group, collection_of_elemt_symbols):
+    """
+    Return subset X of G sush as for every g in G gXg**-1 = X.
+    """
+    mult = group.multiply_simbols
+    inv = group.inv_symbol
+    return set(
+        mult(mult(g, x), inv(g)) for x in collection_of_elemt_symbols
+        for g in group.get_symbols()
+    )
+
+def operation_closure(group: Group, collection_of_elemt_symbols):
+    mult = group.multiply_simbols
+    inv = group.inv_symbol
+    closed_under_operations = set(
+        x for x in collection_of_elemt_symbols
+    )
+    closed_under_operations = closed_under_operations.union(
+        inv(x) for x in closed_under_operations
+        )
+    closed_under_operations.add(group.neutral)
+    alphabet = closed_under_operations
+
+    while True:
+        multiSet = set(
+            mult(lsym, rsym)
+            for lsym in closed_under_operations
+            for rsym in alphabet
+        )
+
+        if multiSet == closed_under_operations:
+            break
+        closed_under_operations = multiSet
+    
+    return closed_under_operations
