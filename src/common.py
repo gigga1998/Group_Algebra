@@ -1,12 +1,15 @@
 """
 Utilitarity functions for the group theory task
 """
+
 import itertools
+
 
 class Pair:
     """
     Class for creating pairs of elements.
     """
+
     def __init__(self, elem1, elem2):
         self.first = elem1
         self.second = elem2
@@ -17,7 +20,10 @@ class Pair:
     def get2(self):
         return self.second
 
-    def to_str(self):
+    def __str__(self):
+        return f"({self.first}, {self.second})"
+
+    def __repr__(self):
         return f"({self.first}, {self.second})"
 
 
@@ -31,6 +37,7 @@ class Element:
     Group: Group
         Group to which the element belongs.
     """
+
     def __init__(self, symbol, group):
         self.sym = symbol
         self.group = group
