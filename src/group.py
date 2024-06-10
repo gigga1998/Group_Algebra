@@ -25,7 +25,7 @@ class Group:
         return group
 
     @classmethod
-    def new_group(cls, multable, neutral):
+    def from_table(cls, multable, neutral):
         """
         multable -- 2d multiplication table.
         neutral -- symbol of identity element.
@@ -237,19 +237,21 @@ class Group:
         syms1 = tab1.columns
         syms2 = tab2.columns
 
-        new_syms = [Pair(sym1, sym2) for sym1 in syms1 for sym2 in syms2]
+        new_syms = [(sym1, sym2) for sym1 in syms1 for sym2 in syms2]
         tab = []
 
         for pair1 in new_syms:
             row = []
             for pair2 in new_syms:
-                first_sym = self.multiply_simbols(pair2.get1(), pair1.get1())
-                second_sym = other.multiply_simbols(pair2.get2(), pair1.get2())
+                first_sym = self.multiply_simbols(pair2[0], pair1[0])
+                second_sym = other.multiply_simbols(pair2[1], pair1[1])
                 row.append(f"({first_sym}, {second_sym})")
             tab.append(row)
 
         neutral = f"({self.neutral}, {other.neutral})"
-        return Group.new_group(tab, neutral)
+        new_syms = [f"({pair[0]}, {pair[1]})" for pair in new_syms]
+        df = pd.DataFrame(tab, columns=new_syms, index=new_syms)
+        return Group.from_pandas(df, neutral)
 
 
 class SubGroup(Group):
