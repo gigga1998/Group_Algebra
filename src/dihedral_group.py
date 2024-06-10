@@ -1,5 +1,3 @@
-from ast import Attribute
-from ctypes import ArgumentError
 import math
 import numpy as np
 from src.group import Group
@@ -25,21 +23,23 @@ class DihedralGroup(Group):
         try:
             _s = symbol[0]
             _k = int(symbol[1:])
-        except:
-            raise AttributeError("Wrong symbol format to get rotation matrix")
-        
+        except Exception as error:
+            raise AttributeError(
+                "Wrong symbol format to get rotation matrix"
+            ) from error
+
         if _s == "e":
             return np.array([[1, 0], [0, 1]])
-        
+
         if _s not in ["r", "s"]:
             raise AttributeError("Only r and s are allowed as symbols")
-        
+
         if _k >= self.n:
             raise AttributeError("This sybmbol doesnt belong to given diheral group")
-        
+
         if _k < 0:
             raise AttributeError("Incorrect symbol number to get rotation matrix")
-               
+
         c = 2 * math.pi * _k / self.n
         if _s == "r":
             return np.array(
