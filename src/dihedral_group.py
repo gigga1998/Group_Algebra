@@ -1,3 +1,4 @@
+from ast import Attribute
 from ctypes import ArgumentError
 import math
 import numpy as np
@@ -21,8 +22,24 @@ class DihedralGroup(Group):
         return pairtable
 
     def _symb2mat(self, symbol: str) -> np.ndarray:
-        _s = symbol[0]
-        _k = int(symbol[1:])
+        try:
+            _s = symbol[0]
+            _k = int(symbol[1:])
+        except:
+            raise AttributeError("Wrong symbol format to get rotation matrix")
+        
+        if _s == "e":
+            return np.array([[1, 0], [0, 1]])
+        
+        if _s not in ["r", "s"]:
+            raise AttributeError("Only r and s are allowed as symbols")
+        
+        if _k >= self.n:
+            raise AttributeError("This sybmbol doesnt belong to given diheral group")
+        
+        if _k < 0:
+            raise AttributeError("Incorrect symbol number to get rotation matrix")
+               
         c = 2 * math.pi * _k / self.n
         if _s == "r":
             return np.array(
@@ -37,10 +54,6 @@ class DihedralGroup(Group):
                     [round(math.cos(c)), round(math.sin(c))],
                     [round(math.sin(c)), round(-math.cos(c))],
                 ]
-            )
-        else:
-            raise ArgumentError(
-                "Wrong symbol to get rotation matrix for this diheral group"
             )
 
     def get_mattable(self) -> dict:
@@ -82,5 +95,5 @@ class DihedralGroup(Group):
 if __name__ == "__main__":
     import pandas as pd
 
-    d = DihedralGroup(1)
+    d = DihedralGroup(3)
     print(pd.DataFrame(d.get_multable()))
