@@ -339,6 +339,25 @@ def cyclic_group(n: int):
     )
 
 
+def quaternion_group():
+    """Return quaternion group."""
+    elems = ('1', '-1', 'i', '-i', 'j', '-j', 'k', '-k')
+    multable = (
+        ('1', '-1', 'i', '-i', 'j', '-j', 'k', '-k'),
+        ('-1', '1', '-i', 'i', '-j', 'j', '-k', 'k'),
+        ('i', '-i', '-1', '1', 'k', '-k', '-j', 'j'),
+        ('-i', 'i', '1', '-1', '-k', 'k', 'j', '-j'),
+        ('j', '-j', '-k', 'k', '-1', '1', 'i', '-i'),
+        ('-j', 'j', 'k', '-k', '1', '-1', '-i', 'i'),
+        ('k', '-k', 'j', '-j', '-i', 'i', '-1', '1'),
+        ('-k', 'k', '-j', 'j', 'i', '-i', '1', '-1'),
+    )
+    return Group.from_pandas(
+        pd.DataFrame(multable, columns=elems, index=elems),
+        elems[0]
+    )
+
+
 def group_from_string(string):
     """
     Return group from string.
@@ -347,13 +366,15 @@ def group_from_string(string):
         'Sn', 'Dn', 'Cn'
     """
     grou_type = string[0]
-    n = int(string[1:])
+    n = string[1:]
     if grou_type == "C":
-        return cyclic_group(n)
+        return cyclic_group(int(n))
 
     if grou_type == "D":
-        return dihedral_group(n)
+        return dihedral_group(int(n))
     
     if grou_type == "S":
-        return symmetry_group(n)
-
+        return symmetry_group(int(n))
+    
+    if grou_type == "Q":
+        return quaternion_group()
