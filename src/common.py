@@ -131,3 +131,10 @@ def dihedral_mult(n, elem1, elem2):
         return 'S' + str((i + j) % n)
     if action1 == 'S' and action2 == 'S':
         return 'R' + str((i - j) % n)
+
+
+def group_string_parser(group_sring: str):
+    """Parse group-string."""
+    group_sring = "".join(l for l in group_sring if l.isalnum())
+    group_sring = group_sring.upper()
+    return group_sring.split("X")

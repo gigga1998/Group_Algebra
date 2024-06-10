@@ -1,6 +1,7 @@
 import random
 import pandas as pd
-from src.common import SymmetryGroupElements, CyclicGroupElements, Element, DihedralGroupElements, dihedral_mult
+from src.common import (SymmetryGroupElements, CyclicGroupElements, Element,
+                        DihedralGroupElements, dihedral_mult, group_string_parser)
 from src.function import Function
 
 
@@ -27,46 +28,23 @@ class Group:
 
     @classmethod
     def from_expression(cls, expr: str):
-        gr = expr[0]
-        n = int(expr[1:])
-        if gr == "S":
-            elems = SymmetryGroupElements(n)
-            multable = [
-                [
-                    tuple(l_elem[r_elem[i] - 1] for i in range(n)) for r_elem in elems
-                ] for l_elem in elems
-            ]
-            elems = [str(elem) for elem in elems]
-            return cls.from_pandas(
-                pd.DataFrame(multable, columns=elems, index=elems),
-                elems[0]
-            )
-
-        if gr == "C":
-            elems = CyclicGroupElements(n)
-            multable = [
-                [
-                    str((l_elem + r_elem) % n) for r_elem in elems
-                ] for l_elem in elems
-            ]
-            elems = [str(elem) for elem in elems]
-            return cls.from_pandas(
-                pd.DataFrame(multable, columns=elems, index=elems),
-                elems[0]
-            )
+        """
+        Create group from expression.
         
-        if gr == "D":
-            elems = DihedralGroupElements(n)
-            multable = [
-                [
-                    dihedral_mult(n, l_elem, r_elem) for r_elem in elems
-                ] for l_elem in elems
-            ]
-            return cls.from_pandas(
-                pd.DataFrame(multable, columns=elems, index=elems),
-                elems[0]
-            )
+        expr has the followin type:
+            Sn x Dm x Ck x ...
 
+        examples:
+            1. D3 x S2 x D3
+            2. C2 x C4 x C6
+            3. D5 x S11
+        """
+
+        group_list = [group_from_string(strg) for strg in group_string_parser(expr)]
+        group = group_list[0]
+        for gr in group_list[1:]:
+            group *= gr
+        return group
 
     def multiply_simbols(self, sym1, sym2):
         """
@@ -282,6 +260,7 @@ def conj_closure(group: Group, collection_of_elemt_symbols):
     )
 
 def operation_closure(group: Group, collection_of_elemt_symbols):
+    """Close collection af elements under group operations."""
     mult = group.multiply_simbols
     inv = group.inv_symbol
     closed_under_operations = set(
@@ -314,3 +293,67 @@ def find_equivalent(multiplication, N, elem, elements):
             if multiplication(lsym, rsym) == elem:
                 return lsym
     return None
+
+
+def symmetry_group(n: int):
+    """Return symmetry group"""
+    elems = SymmetryGroupElements(n)
+    multable = [
+                [
+                    tuple(l_elem[r_elem[i] - 1] for i in range(n)) for r_elem in elems
+                ] for l_elem in elems
+            ]
+    elems = [str(elem) for elem in elems]
+    return Group.from_pandas(
+                pd.DataFrame(multable, columns=elems, index=elems),
+                elems[0]
+            )
+
+
+def dihedral_group(n: int):
+    """Return symmetry group"""
+    elems = DihedralGroupElements(n)
+    multable = [
+        [
+            dihedral_mult(n, l_elem, r_elem) for r_elem in elems
+        ] for l_elem in elems
+    ]
+    return Group.from_pandas(
+        pd.DataFrame(multable, columns=elems, index=elems),
+        elems[0]
+    )
+
+
+def cyclic_group(n: int):
+    """Return symmetry group"""
+    elems = CyclicGroupElements(n)
+    multable = [
+        [
+            str((l_elem + r_elem) % n) for r_elem in elems
+        ] for l_elem in elems
+    ]
+    elems = [str(elem) for elem in elems]
+    return Group.from_pandas(
+        pd.DataFrame(multable, columns=elems, index=elems),
+        elems[0]
+    )
+
+
+def group_from_string(string):
+    """
+    Return group from string.
+    
+    string has one of the following types:
+        'Sn', 'Dn', 'Cn'
+    """
+    grou_type = string[0]
+    n = int(string[1:])
+    if grou_type == "C":
+        return cyclic_group(n)
+
+    if grou_type == "D":
+        return dihedral_group(n)
+    
+    if grou_type == "S":
+        return symmetry_group(n)
+
