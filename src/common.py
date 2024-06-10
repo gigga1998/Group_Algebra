@@ -101,3 +101,33 @@ def CyclicGroupElements(n: int) -> list[str]:
         output: ['0', '1', '2', '3', '4']
     """
     return list(range(n))
+
+
+def DihedralGroupElements(n: int):
+    """
+    Return Dihedral group elements.
+    Example:
+        input: 3
+        output: ['R0', 'R1', 'R2', 'S0', 'S1', 'S2']
+        'R0', 'R1', 'R2' -- Rotaitions
+        'S0', 'S1', 'S2' -- Symmetries
+    """
+    return [f"R{i}" for i in range(n)] + [f"S{i}" for i in range(n)]
+
+
+def dihedral_mult(n, elem1, elem2):
+    """Dihedral multiplication function."""
+    action1 = elem1[0]
+    action2 = elem2[0]
+
+    i = int(elem1[1:])
+    j = int(elem2[1:])
+
+    if action1 == 'R' and action2 == 'R':
+        return 'R' + str((i + j) % n)
+    if action1 == 'S' and action2 == 'R':
+        return 'S' + str((i - j) % n)
+    if action1 == 'R' and action2 == 'S':
+        return 'S' + str((i + j) % n)
+    if action1 == 'S' and action2 == 'S':
+        return 'R' + str((i - j) % n)

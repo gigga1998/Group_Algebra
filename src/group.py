@@ -1,6 +1,7 @@
 import random
 import pandas as pd
-from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
+from src.common import SymmetryGroupElements, CyclicGroupElements, Element, DihedralGroupElements, dihedral_mult
+from src.function import Function
 
 
 class Group:
@@ -25,65 +26,47 @@ class Group:
         return group
 
     @classmethod
-    def from_table(cls, multable, neutral):
-        """
-        multable -- 2d multiplication table.
-        neutral -- symbol of identity element.
-        example: [
-                  ['a', 'b'],
-                  ['b', 'a']
-                 ]
-        """
-        symbols = multable[0]
-        group = Group()
-
-        group.multable = pd.DataFrame(
-            data=multable,
-            columns=symbols,
-            index=symbols,
-        )
-        group.neutral = neutral
-        return group
-
-    @classmethod
     def from_expression(cls, expr: str):
-        group = Group()
         gr = expr[0]
         n = int(expr[1:])
         if gr == "S":
             elems = SymmetryGroupElements(n)
-            multable = []
-            for l_elem in elems:
-                row = []
-                for r_elem in elems:
-                    mult_res = tuple(l_elem[r_elem[i] - 1] for i in range(n))
-                    row.append(str(mult_res))
-                multable.append(row)
+            multable = [
+                [
+                    tuple(l_elem[r_elem[i] - 1] for i in range(n)) for r_elem in elems
+                ] for l_elem in elems
+            ]
             elems = [str(elem) for elem in elems]
-            group.multable = pd.DataFrame(
-                data=multable,
-                columns=elems,
-                index=elems,
+            return cls.from_pandas(
+                pd.DataFrame(multable, columns=elems, index=elems),
+                elems[0]
             )
-            group.neutral = elems[0]
-            return group
 
         if gr == "C":
             elems = CyclicGroupElements(n)
-            multable = []
-            for l_elem in elems:
-                row = []
-                for r_elem in elems:
-                    row.append(str((l_elem + r_elem) % n))
-                multable.append(row)
+            multable = [
+                [
+                    str((l_elem + r_elem) % n) for r_elem in elems
+                ] for l_elem in elems
+            ]
             elems = [str(elem) for elem in elems]
-            group.multable = pd.DataFrame(
-                data=multable,
-                columns=elems,
-                index=elems,
+            return cls.from_pandas(
+                pd.DataFrame(multable, columns=elems, index=elems),
+                elems[0]
             )
-            group.neutral = elems[0]
-            return group
+        
+        if gr == "D":
+            elems = DihedralGroupElements(n)
+            multable = [
+                [
+                    dihedral_mult(n, l_elem, r_elem) for r_elem in elems
+                ] for l_elem in elems
+            ]
+            return cls.from_pandas(
+                pd.DataFrame(multable, columns=elems, index=elems),
+                elems[0]
+            )
+
 
     def multiply_simbols(self, sym1, sym2):
         """
@@ -259,6 +242,34 @@ class SubGroup(Group):
         self.multable = multable
         self.neutral = neutral
         self.group = group
+
+
+class Homomorphism(Function):
+    """Group homomorphism class."""
+
+    def __init__(self, dct: dict, g1: Group, g2: Group):
+        """Init g1 --> g2 homomorphism."""
+        super().__init__(dct)
+        homomorphism_test(dct, g1, g2)
+        self.dom = g1.get_elements()
+        self.cod = g2.get_elements()
+
+
+def homomorphism_test(dct: dict, g1: Group, g2: Group):
+    """Test that dct is homomorphism-dictionary."""
+    dom = g1.get_symbols()
+    cod = g2.get_symbols()
+
+    if not set(dct.keys()) <= dom:
+        raise Exception("Domain test exception!")
+
+    if not set(dct[x] for x in dom) <= cod:
+        raise Exception("Co-domain test exception!")
+
+    for x in dom:
+        for y in dom:
+            if dct[g1.multiply_simbols(x, y)] != g2.multiply_simbols(dct[x], dct[y]):
+                raise Exception("Homomorphism test exception!: f(ab) != f(a)f(b)")
 
 
 def conj_closure(group: Group, collection_of_elemt_symbols):
