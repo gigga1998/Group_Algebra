@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 from src.common import SymmetryGroupElements, CyclicGroupElements, Element, Pair
 
@@ -7,15 +8,27 @@ class Group:
     neutral: str
 
     def __init__(self) -> None:
+        """Init void group."""
         pass
 
     def __str__(self) -> str:
+        """String cast."""
         return self.multable.to_string()
 
     @classmethod
-    def new_group(cls, multable, neutral):
+    def from_pandas(cls, df, neutral):
+        """Create group from df multable."""
+        group = Group()
+        group.multable = df
+        group.neutral = neutral
+
+        return group
+
+    @classmethod
+    def from_table(cls, multable, neutral):
         """
         multable -- 2d multiplication table.
+        neutral -- symbol of identity element.
         example: [
                   ['a', 'b'],
                   ['b', 'a']
@@ -96,6 +109,7 @@ class Group:
         return self.multable[sym2][sym1]
 
     def inv_symbol(self, sym):
+        """Get inv-symbol of current symbol."""
         """
         Return inverse elemen symbol for Elem(self, sym).
         """
@@ -103,15 +117,19 @@ class Group:
         return col[col == self.neutral].index[0]
 
     def get_element(self, sym):
+        """Get element with current symbol"""
         return Element(sym, self)
 
     def get_elements(self):
+        """Get group elements."""
         return set(Element(sym, self) for sym in self.multable.columns)
     
     def get_symbols(self):
+        """Get all symbols of group elements."""
         return set(self.multable.columns)
 
     def subgroup(self, symbols):
+        """Generate sub-group."""
         subGroup_elemes = tuple(sym for sym in operation_closure(self, symbols))
         multable = [
             [self.multiply_simbols(lsym, rsym) for rsym in subGroup_elemes]
@@ -125,6 +143,7 @@ class Group:
         return SubGroup(multable, neutral, self)
 
     def normal_subgroup(self, symbols):
+        """Generate normal-subgroup."""
         subGroup_elemes = operation_closure(self, symbols)
 
         while True:
@@ -151,27 +170,88 @@ class Group:
         )
         neutral = self.neutral
         return SubGroup(multable, neutral, self)
+    
+    def commutator(self, lsym, rsym):
+        """Return commutator [lsym, rsym]."""
+        inv_lsym = self.inv_symbol(lsym)
+        inv_rsym = self.inv_symbol(rsym)
+        mul = self.multiply_simbols
+
+        return mul(mul(mul(inv_lsym, inv_rsym), lsym), rsym)
+    
+    def commutator_subgroup(self):
+        """Return commutator sub-group."""
+        group_syms = self.get_symbols()
+        generator_set = set(
+            self.commutator(lsym, rsym) for lsym in group_syms
+            for rsym in group_syms
+        )
+        commutator_sub = self.normal_subgroup(generator_set)
+        return commutator_sub
+    
+    def abelinization(self):
+        """Return the abelinization of current Group."""
+        commutator = self.commutator_subgroup()
+        return self / commutator
+    
+    def __truediv__(self, subgroup):
+        """Calculate factor-group."""
+        assert self == subgroup.group
+
+        group_symbols = self.get_symbols()
+        subgroup_symbols = subgroup.get_symbols()
+
+        group_symbols -= subgroup_symbols
+        factor_group_symbols = [self.neutral]
+
+        mult = self.multiply_simbols
+
+        while group_symbols:
+            random_symbol = random.choice(list(group_symbols))
+            factor_group_symbols.append(random_symbol)
+            group_symbols -= set(
+                mult(random_symbol, symbol) for symbol in subgroup_symbols
+                )
+        
+        def factor_mult(lsym, rsym):
+            sym = mult(lsym, rsym)
+            return f"[{find_equivalent(mult, subgroup_symbols, sym, factor_group_symbols)}]"
+
+        multable = [
+            [factor_mult(lsym, rsym) for rsym in factor_group_symbols]
+            for lsym in factor_group_symbols
+        ]
+        factor_group_symbols = [f"[{sym}]" for sym in factor_group_symbols]
+        multable = pd.DataFrame(
+            multable, columns=factor_group_symbols , index=factor_group_symbols
+        )
+        neutral = f"[{self.neutral}]"
+
+        return Group.from_pandas(multable, neutral)
 
     def __mul__(self, other):
+        """Return direct product of groups."""
         tab1 = self.multable
         tab2 = other.multable
 
         syms1 = tab1.columns
         syms2 = tab2.columns
 
-        new_syms = [Pair(sym1, sym2) for sym1 in syms1 for sym2 in syms2]
+        new_syms = [(sym1, sym2) for sym1 in syms1 for sym2 in syms2]
         tab = []
 
         for pair1 in new_syms:
             row = []
             for pair2 in new_syms:
-                first_sym = self.multiply_simbols(pair2.get1(), pair1.get1())
-                second_sym = other.multiply_simbols(pair2.get2(), pair1.get2())
+                first_sym = self.multiply_simbols(pair2[0], pair1[0])
+                second_sym = other.multiply_simbols(pair2[1], pair1[1])
                 row.append(f"({first_sym}, {second_sym})")
             tab.append(row)
 
         neutral = f"({self.neutral}, {other.neutral})"
-        return Group.new_group(tab, neutral)
+        new_syms = [f"({pair[0]}, {pair[1]})" for pair in new_syms]
+        df = pd.DataFrame(tab, columns=new_syms, index=new_syms)
+        return Group.from_pandas(df, neutral)
 
 
 class SubGroup(Group):
@@ -182,9 +262,7 @@ class SubGroup(Group):
 
 
 def conj_closure(group: Group, collection_of_elemt_symbols):
-    """
-    Return subset X of G sush as for every g in G gXg**-1 = X.
-    """
+    """Return subset X of G sush as for every g in G gXg**-1 = X."""
     mult = group.multiply_simbols
     inv = group.inv_symbol
     return set(
@@ -216,3 +294,12 @@ def operation_closure(group: Group, collection_of_elemt_symbols):
         closed_under_operations = multiSet
     
     return closed_under_operations
+
+
+def find_equivalent(multiplication, N, elem, elements):
+    """Find euivalent symbol for elem in elements modulo N."""
+    for rsym in N:
+        for lsym in elements:
+            if multiplication(lsym, rsym) == elem:
+                return lsym
+    return None
